@@ -3,6 +3,7 @@ import GitHub from 'next-auth/providers/github';
 import Google from 'next-auth/providers/google';
 import Resend from 'next-auth/providers/resend';
 import { PrismaAdapter } from '@auth/prisma-adapter';
+import type { Role } from '@prisma/client';
 import { db } from '@/lib/db';
 
 const providers = [
@@ -42,8 +43,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
-        // @ts-expect-error role not in default type — extended below
-        session.user.role = user.role ?? 'CUSTOMER';
+        session.user.role =
+          (user as typeof user & { role?: Role }).role ?? 'CUSTOMER';
       }
       return session;
     },

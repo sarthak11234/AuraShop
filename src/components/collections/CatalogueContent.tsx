@@ -72,7 +72,7 @@ async function Catalogue({ basePath = '/collections', category, searchParams }: 
       <div className="flex flex-wrap items-center gap-2 mb-12 font-mono text-[10px]">
         <span className="text-ink-muted mr-2">FILTER.CATEGORY:</span>
         <Link
-          href={buildHref(basePath, { category: undefined, inStock: false, q: undefined, sort: 'featured', page })}
+          href={buildHref(basePath, { category: undefined, inStock: false, q: undefined, sort: 'featured' })}
           className={`px-3 py-1.5 border font-bold transition-colors ${
             !selectedCategory && !inStock
               ? 'bg-brand text-ink-primary border-brand'
@@ -84,7 +84,7 @@ async function Catalogue({ basePath = '/collections', category, searchParams }: 
         {categories.map((c) => (
           <Link
             key={c}
-            href={buildHref(basePath, { category: c, inStock: false, q: undefined, sort: 'featured', page })}
+            href={buildHref(basePath, { category: c, inStock: false, q: undefined, sort: 'featured' })}
             className={`px-3 py-1.5 border font-bold transition-colors ${
               selectedCategory?.toUpperCase() === c.toUpperCase()
                 ? 'bg-brand text-ink-primary border-brand'
@@ -97,8 +97,8 @@ async function Catalogue({ basePath = '/collections', category, searchParams }: 
         <Link
           href={
             inStock
-              ? buildHref(basePath, { category: selectedCategory, inStock: false, q, sort, page })
-              : buildHref(basePath, { category: selectedCategory, inStock: true, q, sort, page })
+              ? buildHref(basePath, { category: selectedCategory, inStock: false, q, sort })
+              : buildHref(basePath, { category: selectedCategory, inStock: true, q, sort })
           }
           className={`px-3 py-1.5 border font-bold transition-colors ${
             inStock ? 'bg-brand text-ink-primary border-brand' : 'border-line text-ink-secondary hover:border-brand hover:text-brand'
@@ -117,12 +117,12 @@ async function Catalogue({ basePath = '/collections', category, searchParams }: 
       </div>
 
       {/* Sort controls */}
-      <div className="flex items-center gap-2 mb-8 font-mono text-[10px]">
+      <div className="flex flex-wrap items-center gap-2 mb-8 font-mono text-[10px]">
         <span className="text-ink-muted mr-2">SORT:</span>
         {CATALOGUE_SORTS.map((s) => (
           <Link
             key={s}
-            href={buildHref(basePath, { category: selectedCategory, inStock, q, sort: s === 'featured' ? undefined : s, page })}
+            href={buildHref(basePath, { category: selectedCategory, inStock, q, sort: s === 'featured' ? undefined : s })}
             className={`px-3 py-1.5 border font-bold transition-colors ${
               sort === s ? 'bg-brand text-ink-primary border-brand' : 'border-line text-ink-secondary hover:border-brand hover:text-brand'
             }`}

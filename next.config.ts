@@ -6,6 +6,55 @@ const nextConfig: NextConfig = {
   // Static shell streams instantly; uncached reads (DB) must sit inside
   // <Suspense> boundaries so they stream.
   cacheComponents: true,
+  // ─── Security headers ─────────────────────────────────────────────────────
+  async headers() {
+    return [
+      {
+        // Apply to all routes
+        source: '/(.*)',
+        headers: [
+          // Prevent MIME-type sniffing
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          // Control referrer information
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+          // Frame protection (sameorigin prevents framing by other domains)
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          // Permissions-Policy: restrict camera, microphone, geolocation, etc.
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=()',
+          },
+          // Remove X-Powered-By (Next.js default)
+          {
+            key: 'X-Powered-By',
+            value: '',
+          },
+        ],
+      },
+      {
+        // Stricter headers in production only (when NOT localhost)
+        source: '/(.*)',
+        headers: process.env.NODE_ENV === 'production' && process.env.VERCEL !== '1'
+          ? [
+              {
+                key: 'Strict-Transport-Security',
+                value: 'max-age=31536000; includeSubDomains',
+              },
+            ]
+          : [],
+      },
+    ];
+  },
+  // ──────────────────────────────────────────────────────────────────────────
   images: {
     // Allow external image domains when real product imagery is added
     remotePatterns: [

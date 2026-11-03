@@ -5,9 +5,19 @@ import { getAdminClient, INDEX_NAME } from '@/lib/algolia';
 // POST /api/algolia/sync
 // Secured with CRON_SECRET header — call via Vercel Cron or curl
 export async function POST(request: Request) {
+  const MAX_PAYLOAD_SIZE = 1_000_000; // 1MB limit
   const secret = request.headers.get('x-cron-secret');
   if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Protect against oversized request bodies
+  const body = await request.text();
+  if (body.length > MAX_PAYLOAD_SIZE) {
+    return NextResponse.json(
+      { error: 'Payload too large' },
+      { status: 413 }
+    );
   }
 
   try {

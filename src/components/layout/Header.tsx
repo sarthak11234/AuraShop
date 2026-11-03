@@ -43,23 +43,27 @@ const NavigationLinkList = ({
 }: NavigationLinksProps) => {
   const isActive = (href: string) => {
     const [base, query] = href.split('?');
+    const normalizedPathname = pathname.toLowerCase();
 
     if (href === '/collections') {
       return (
-        (pathname === base && category !== 'TECH') ||
-        (pathname.startsWith(`${base}/`) && pathname !== `${base}/TECH`)
+        (pathname === base && category?.toUpperCase() !== 'TECH') ||
+        (normalizedPathname.startsWith(`${base}/`) && normalizedPathname !== `${base}/tech`)
       );
     }
 
     if (query) {
       const targetParams = new URLSearchParams(query);
       const matchesTargetQuery = [...targetParams.entries()].every(
-        ([key, value]) => (key === 'category' ? category : null) === value,
+        ([key, value]) =>
+          key === 'category'
+            ? category?.toUpperCase() === value.toUpperCase()
+            : false,
       );
 
       return (
         (pathname === base && matchesTargetQuery) ||
-        pathname === `${base}/TECH`
+        normalizedPathname === `${base}/tech`
       );
     }
 
@@ -151,6 +155,7 @@ export const Header = () => {
 
   React.useEffect(() => {
     void useWishlistStore.persist.rehydrate();
+    void useCartStore.persist.rehydrate();
   }, []);
 
   React.useEffect(() => {

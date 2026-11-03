@@ -24,31 +24,84 @@ function getDb(): PrismaClient {
   return globalForPrisma.proxyPrisma;
 }
 
-const NOT_FOUND_HTML = `<!DOCTYPE html>
+function notFoundHtml(code: string, message: string): string {
+  return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><title>Not Found | VEXO</title><meta name="robots" content="noindex"></head>
-<body style="margin:0;background:#fff;color:#111;font-family:ui-monospace,monospace;display:flex;min-height:100vh;align-items:center;justify-content:center">
-  <div style="text-align:center;padding:2rem">
-    <p style="font-size:11px;letter-spacing:0.2em;color:#888">ERROR.404</p>
-    <h1 style="font-size:48px;font-style:italic;margin:0.5rem 0">PRODUCT_NOT_FOUND</h1>
-    <p style="font-size:12px;color:#666">This unit does not exist in the catalogue.</p>
-    <a href="/collections" style="font-size:11px;color:#111">← BACK TO CATALOGUE</a>
-  </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="dark">
+  <title>${code} | VEXO</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: #0B0B0D; color: #F4F2F0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background-image:
+        linear-gradient(rgba(244,242,240,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(244,242,240,0.035) 1px, transparent 1px);
+      background-size: 72px 72px;
+    }
+    .panel {
+      width: 100%; max-width: 640px; border: 1px solid #29292E; background: #18181C;
+      padding: clamp(28px, 6vw, 56px);
+    }
+    .meta {
+      display: flex; justify-content: space-between; gap: 16px; padding-bottom: 16px;
+      border-bottom: 1px solid #29292E; font: 700 9px/1.4 ui-monospace, monospace;
+      letter-spacing: 0.22em; text-transform: uppercase; color: #77747A;
+    }
+    .meta strong { color: #FF454F; font-weight: 700; }
+    .wordmark {
+      display: flex; align-items: baseline; gap: 6px; margin-top: 32px;
+      font-size: 18px; font-weight: 800; letter-spacing: 0.32em;
+    }
+    .dot { width: 6px; height: 6px; border-radius: 999px; background: #FF454F; }
+    .tagline {
+      margin: 8px 0 0; font: 400 9px/1.4 ui-monospace, monospace;
+      letter-spacing: 0.2em; color: #A6A3A3; text-transform: uppercase;
+    }
+    h1 {
+      margin: 40px 0 0; font-size: clamp(36px, 8vw, 56px); line-height: 0.95;
+      font-style: italic; letter-spacing: -0.04em; text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+    p {
+      margin: 18px 0 0; max-width: 44ch; font-size: 14px; line-height: 1.7; color: #A6A3A3;
+    }
+    a {
+      display: inline-flex; align-items: center; min-height: 46px; margin-top: 36px;
+      padding: 0 22px; border: 1px solid #FF454F; background: #FF454F;
+      color: #0B0B0D; text-decoration: none; font: 700 10px/1 ui-monospace, monospace;
+      letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    a:hover, a:focus-visible { background: #E8323D; border-color: #E8323D; outline: 2px solid #F4F2F0; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <div class="meta"><span>ERROR.404</span><strong>${code}</strong></div>
+    <div class="wordmark"><span>VEXO</span><span class="dot" aria-hidden="true"></span></div>
+    <p class="tagline">FUTURE IS WEARABLE.</p>
+    <h1>${code.replaceAll('_', ' ')}</h1>
+    <p>${message}</p>
+    <a href="/collections">← Back to catalogue</a>
+  </main>
 </body>
 </html>`;
+}
 
-const NOT_FOUND_COLLECTION_HTML = `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><title>Not Found | VEXO</title><meta name="robots" content="noindex"></head>
-<body style="margin:0;background:#fff;color:#111;font-family:ui-monospace,monospace;display:flex;min-height:100vh;align-items:center;justify-content:center">
-  <div style="text-align:center;padding:2rem">
-    <p style="font-size:11px;letter-spacing:0.2em;color:#888">ERROR.404</p>
-    <h1 style="font-size:48px;font-style:italic;margin:0.5rem 0">COLLECTION_NOT_FOUND</h1>
-    <p style="font-size:12px;color:#666">This collection does not exist in the catalogue.</p>
-    <a href="/collections" style="font-size:11px;color:#111">← BACK TO CATALOGUE</a>
-  </div>
-</body>
-</html>`;
+const NOT_FOUND_HTML = notFoundHtml(
+  'PRODUCT_NOT_FOUND',
+  'This unit does not exist in the catalogue. Check the address or return to the catalogue to continue exploring.',
+);
+
+const NOT_FOUND_COLLECTION_HTML = notFoundHtml(
+  'COLLECTION_NOT_FOUND',
+  'This collection does not exist in the current VEXO release. Return to the catalogue to browse every available collection.',
+);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -64,12 +117,14 @@ export async function proxy(request: NextRequest) {
     const category = pathname.replace('/collections/', '').split('/')[0];
 
     let exists = false;
+    let canonicalCategory: string | null = null;
     try {
       const row = await getDb().product.findFirst({
         where: { category: { equals: category, mode: 'insensitive' as const } },
-        select: { id: true },
+        select: { id: true, category: true },
       });
       exists = row !== null;
+      canonicalCategory = row?.category ?? null;
     } catch (error) {
       // Database unreachable — never hard-404 the catalogue on an infra error;
       // let the page render (its own query will surface the failure).
@@ -82,6 +137,15 @@ export async function proxy(request: NextRequest) {
         status: 404,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
+    }
+
+    // One canonical casing per collection: /collections/tech redirects to
+    // /collections/TECH. Besides SEO hygiene, this keeps requests on the
+    // prerendered param variants instead of the dynamic fallback shell.
+    if (canonicalCategory && canonicalCategory !== category) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/collections/${encodeURIComponent(canonicalCategory)}`;
+      return NextResponse.redirect(url, 308);
     }
 
     return NextResponse.next();

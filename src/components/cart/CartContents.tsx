@@ -74,7 +74,9 @@ export function CartItemRow({ item }: { item: CartItem }) {
               variant="ghost"
               size="icon-lg"
               onClick={() => updateQuantity(item.key, 1)}
+              disabled={item.stock !== undefined && item.quantity >= item.stock}
               aria-label={`Increase ${item.name} quantity`}
+              title={item.stock !== undefined && item.quantity >= item.stock ? `Maximum stock reached (${item.stock})` : undefined}
               className="h-10 w-10 rounded-none"
             >
               <Plus size={14} aria-hidden="true" />

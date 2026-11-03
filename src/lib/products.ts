@@ -40,7 +40,8 @@ export interface ProductCardData {
   subtitle: string;
   price: string; // formatted, e.g. "$840.00"
   priceRaw: number;
-  sizes: string[]; // default (first) size used by QUICK_ADD
+  sizes: string[]; // derived from variants, in schema order
+  variants: ProductVariantData[]; // per-size stock, used by QUICK_ADD
   images: string[]; // colour hex or URLs
   category: string;
   categoryCode: string;
@@ -81,7 +82,7 @@ function toCardData(p: {
   isNew: boolean;
   inStock: boolean;
   images: unknown;
-  variants: { size: string }[];
+  variants: { size: string; stock: number }[];
 }): ProductCardData {
   const priceRaw = Number(p.price);
   return {
@@ -92,6 +93,7 @@ function toCardData(p: {
     price: formatPrice(priceRaw),
     priceRaw,
     sizes: p.variants.map((v) => v.size),
+    variants: p.variants.map((v) => ({ size: v.size, stock: v.stock })),
     images: (p.images as string[]) ?? [],
     category: p.category,
     categoryCode: p.categoryCode,
@@ -151,17 +153,37 @@ export async function getProducts({
       orderBy,
       skip: (safePage - 1) * safePageSize,
       take: safePageSize,
-      include: { variants: { select: { size: true }, orderBy: { createdAt: 'asc' } } },
+      include: { variants: { select: { size: true, stock: true }, orderBy: { createdAt: 'asc' } } },
     }),
     db.product.count({ where }),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  // Out-of-range URLs must not render an empty catalogue labelled
+  // "PAGE 999 / 02" — clamp to the last real page instead.
+  if (safePage > totalPages) {
+    const clampedItems = await db.product.findMany({
+      where,
+      orderBy,
+      skip: (totalPages - 1) * safePageSize,
+      take: safePageSize,
+      include: { variants: { select: { size: true, stock: true }, orderBy: { createdAt: 'asc' } } },
+    });
+    return {
+      products: clampedItems.map(toCardData),
+      total,
+      page: totalPages,
+      pageSize: safePageSize,
+      totalPages,
+    };
+  }
 
   return {
     products: items.map(toCardData),
     total,
     page: safePage,
     pageSize: safePageSize,
-    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+    totalPages,
   };
 }
 
@@ -171,7 +193,7 @@ export async function getFeaturedProducts(limit = 8): Promise<ProductCardData[]>
   const items = await db.product.findMany({
     orderBy: { createdAt: 'desc' },
     take,
-    include: { variants: { select: { size: true }, orderBy: { createdAt: 'asc' } } },
+    include: { variants: { select: { size: true, stock: true }, orderBy: { createdAt: 'asc' } } },
   });
   return items.map(toCardData);
 }

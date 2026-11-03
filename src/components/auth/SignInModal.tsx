@@ -43,6 +43,7 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const { status } = useSession();
   const { closeRef, dialogRef } = useOverlayBehavior<HTMLDivElement>(isOpen, onClose);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isOpen) return;
 

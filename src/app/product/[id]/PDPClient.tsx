@@ -14,7 +14,8 @@ interface PDPClientProps {
 }
 
 export function PDPClient({ product }: PDPClientProps) {
-  const [selectedSize, setSelectedSize] = useState<string>(product.sizes[0] ?? '');
+  const initialVariant = product.variants.find((variant) => variant.stock > 0) ?? product.variants[0];
+  const [selectedSize, setSelectedSize] = useState<string>(initialVariant?.size ?? '');
   const [qty, setQty] = useState(1);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
@@ -35,6 +36,7 @@ export function PDPClient({ product }: PDPClientProps) {
       price: product.priceRaw,
       image: product.images[0],
       quantity: qty,
+      stock,
     });
     setAddedFeedback(true);
     toggleCart();

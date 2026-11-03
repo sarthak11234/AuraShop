@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InstantSearch, SearchBox, Hits, useInstantSearch } from 'react-instantsearch';
 import { getSearchClient, isAlgoliaConfigured, INDEX_NAME } from '@/lib/algolia';
@@ -125,11 +125,28 @@ function OfflinePanel({ onClose }: { onClose: () => void }) {
 // ── Public API ──────────────────────────────────────────────────────────
 export function SearchTrigger() {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const searchClient = getSearchClient();
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open]);
 
   return (
     <>
       <button
+        ref={triggerRef}
         id="header-search-trigger"
         onClick={() => setOpen(true)}
         className="p-2 rounded-full text-ink-secondary hover:text-ink-primary hover:bg-surface transition-colors disabled:opacity-40"

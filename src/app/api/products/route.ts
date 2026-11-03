@@ -10,12 +10,18 @@ export async function GET(request: Request) {
   const page = Number.parseInt(searchParams.get('page') ?? '1', 10);
   const pageSize = Number.parseInt(searchParams.get('pageSize') ?? '12', 10);
 
+  // Input validation: cap page/pageSize, sanitize strings
+  const safePage = Math.max(1, Math.min(1000, Math.trunc(page)));
+  const safePageSize = Math.max(1, Math.min(48, Math.trunc(pageSize)));
+  const safeCategory = category?.trim().slice(0, 64) ?? undefined;
+  const safeQ = q?.trim().slice(0, 128) ?? undefined;
+
   try {
     const result = await getProducts({
-      page: Number.isNaN(page) ? 1 : page,
-      pageSize: Number.isNaN(pageSize) ? 12 : pageSize,
-      category,
-      q,
+      page: safePage,
+      pageSize: safePageSize,
+      category: safeCategory,
+      q: safeQ,
     });
 
     return NextResponse.json({

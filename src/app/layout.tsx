@@ -27,7 +27,11 @@ const jetBrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "VEXO | Futuristic E-Commerce",
   description: "Experience the future of shopping with VEXO.",
-  metadataBase: new URL(process.env.NEXTAUTH_URL ?? "https://vexo.store"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      process.env.NEXTAUTH_URL ??
+      "https://vexo.store",
+  ),
 };
 
 export default function RootLayout({
