@@ -1,205 +1,218 @@
 'use client';
 
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { gsap, ScrollTrigger } from '@/lib/gsap';
+import { gsap } from '@/lib/gsap';
+import { FilmModal } from './FilmModal';
+import { FashionViewerClient } from '@/components/3d/FashionViewerClient';
 
-const WORDS = ['BEYOND', 'THE', 'HORIZON'];
+const HEADING_LINES = ['FUTURE IS', 'WEARABLE.'];
 
-export function HeroSection() {
+export interface HeroSectionProps {
+  /**
+   * Server-rendered product information (streams in through a Suspense
+   * boundary on the page) — outfit name, collection id and live price.
+   */
+  productSlot?: ReactNode;
+}
+
+export function HeroSection({ productSlot }: HeroSectionProps) {
   const containerRef = useRef<HTMLElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const leftHudRef = useRef<HTMLDivElement>(null);
-  const rightHudRef = useRef<HTMLDivElement>(null);
+  const descRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
+
+  const [isFilmOpen, setIsFilmOpen] = useState(false);
 
   useLayoutEffect(() => {
+    // Respect prefers-reduced-motion: skip the entrance choreography and
+    // keep the hero in its natural, fully-visible final state.
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+    if (prefersReducedMotion) return;
+
     const ctx = gsap.context(() => {
-      // ── Word reveal on entry ─────────────────────────────────────────
-      const words = headingRef.current?.querySelectorAll('.word-wrap');
-      if (words) {
+      // ── 1. Collection badge drops down ────────────────────────────────
+      if (badgeRef.current) {
+        gsap.fromTo(
+          badgeRef.current,
+          { y: -25, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out', delay: 0.1 }
+        );
+      }
+
+      // ── 2. Headline words drop gradually from the top ──────────────────
+      const words = headingRef.current?.querySelectorAll('.word-drop');
+      if (words && words.length > 0) {
         gsap.fromTo(
           words,
-          { yPercent: 110, opacity: 0 },
+          { yPercent: -130, opacity: 0 },
           {
             yPercent: 0,
             opacity: 1,
-            duration: 1.1,
+            duration: 1.2,
             ease: 'power4.out',
-            stagger: 0.12,
+            stagger: 0.18,
+            delay: 0.2,
           }
         );
       }
 
-      // ── HUD panels fade in ───────────────────────────────────────────
-      gsap.fromTo(
-        [leftHudRef.current, rightHudRef.current],
-        { opacity: 0, x: (i) => (i === 0 ? -24 : 24) },
-        { opacity: 1, x: 0, duration: 1, delay: 0.4, ease: 'power3.out' }
-      );
+      // ── 3. Supporting copy & CTAs slide in ─────────────────────────────
+      if (descRef.current) {
+        gsap.fromTo(
+          descRef.current,
+          { y: -15, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.9, delay: 0.45, ease: 'power3.out' }
+        );
+      }
 
-      // ── CTA slide up ─────────────────────────────────────────────────
-      gsap.fromTo(
-        ctaRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, delay: 0.9, ease: 'power3.out' }
-      );
+      if (ctaRef.current) {
+        gsap.fromTo(
+          ctaRef.current,
+          { y: 20, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.8, delay: 0.6, ease: 'power3.out' }
+        );
+      }
 
-      // ── ScrollTrigger: scrub heading scale + parallax ────────────────
-      if (!containerRef.current) return;
-
-      gsap.to(headingRef.current, {
-        scale: 0.88,
-        yPercent: -8,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: 1.5,
-        },
-      });
-
-      // HUD panels drift apart on scroll
-      gsap.to(leftHudRef.current, {
-        x: -30,
-        opacity: 0,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top top',
-          end: '60% top',
-          scrub: true,
-        },
-      });
-
-      gsap.to(rightHudRef.current, {
-        x: 30,
-        opacity: 0,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top top',
-          end: '60% top',
-          scrub: true,
-        },
-      });
+      // ── 4. Avatar stage fades in (DOM-only — never touches the canvas
+      //      camera, so it cannot conflict with OrbitControls) ───────────
+      if (viewerRef.current) {
+        gsap.fromTo(
+          viewerRef.current,
+          { opacity: 0, y: 40 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 1.1,
+            delay: 0.25,
+            ease: 'power3.out',
+            clearProps: 'transform',
+          }
+        );
+      }
     }, containerRef);
 
     return () => ctx.revert();
   }, []);
 
   return (
-    <section
-      ref={containerRef}
-      className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative min-h-[80vh] pt-4"
-      aria-label="Hero"
-    >
-      {/* ── Left HUD ──────────────────────────────────────────────────── */}
-      <div
-        ref={leftHudRef}
-        className="lg:col-span-2 flex flex-col gap-12 monospace text-muted"
+    <>
+      <section
+        ref={containerRef}
+        className="relative w-full overflow-hidden bg-canvas text-ink-primary border-b border-line"
+        aria-label="Hero Showcase"
       >
-        <div className="flex flex-col gap-2">
-          <span className="text-secondary font-bold text-sm">01/WINTER</span>
-          <div className="w-8 h-[1px] bg-secondary" />
-          <span>COLLECTION.2025</span>
-        </div>
-        <div className="flex flex-col gap-1 text-[9px]">
-          <span className="text-primary font-bold">SYS_ONLINE</span>
-          <span>TRANS_ACTIVE</span>
-          <span>SEC_ENCRYPTED</span>
-        </div>
-      </div>
+        {/* ── Atmospheric Spotlight behind the Avatar (centre-right) ──── */}
+        <div className="absolute top-1/2 right-[10%] -translate-y-1/2 w-[560px] h-[560px] max-w-[70vw] max-h-[70vw] bg-[radial-gradient(circle,_rgba(255,255,255,0.16)_0%,_rgba(235,51,51,0.08)_45%,_transparent_70%)] pointer-events-none blur-2xl" />
 
-      {/* ── Centre: Heading ───────────────────────────────────────────── */}
-      <div className="lg:col-span-8 flex flex-col gap-8">
-        <div className="overflow-hidden">
-          <h1
-            ref={headingRef}
-            className="text-6xl md:text-[120px] leading-[0.85] font-black italic tracking-tighter text-primary origin-top-left"
-            aria-label="Beyond The Horizon"
-          >
-            {WORDS.map((word, i) => (
-              <span
-                key={word}
-                className="block overflow-hidden"
-              >
-                <span className="word-wrap block">
-                  {i === 1 ? (
-                    <>
-                      <span className="text-secondary">{word}</span>
-                    </>
-                  ) : (
-                    word
-                  )}
-                </span>
-              </span>
-            ))}
-          </h1>
-        </div>
+        {/* ── Cyber Matrix Subtle Grid ─────────────────────────────────── */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
 
-        {/* Description + CTA */}
-        <div ref={ctaRef} className="max-w-md ml-auto lg:mr-20 flex flex-col gap-6">
-          <p className="text-muted text-sm leading-relaxed monospace">
-            VEXO represents the pinnacle of digital craftsmanship. Our Neural
-            Series integrates biometric feedback with physical architecture,
-            redefining the boundaries of human-digital interaction.
-          </p>
+        <div className="relative z-10 mx-auto w-full max-w-[1800px] min-h-[80vh] lg:min-h-[88vh] pt-24 pb-10 lg:pt-28 lg:pb-14 px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center lg:items-stretch">
 
-          <div className="flex items-center gap-6">
-            {/* Primary CTA */}
-            <Link
-              href="/product/core-shell"
-              id="hero-explore-cta"
-              className="group relative inline-flex items-center gap-3 bg-primary text-background px-8 py-4 font-black italic tracking-tight text-sm uppercase overflow-hidden transition-all hover:bg-secondary"
+          {/* ── Left Column: Compact Editorial Block ───────────────────── */}
+          <div className="lg:col-span-5 order-2 lg:order-1 flex flex-col justify-center gap-5 z-20">
+            {/* Collection Badge */}
+            <div
+              ref={badgeRef}
+              className="flex items-center gap-2 monospace text-[10px] sm:text-[11px] text-ink-secondary"
             >
-              <span className="relative z-10">EXPLORE_NOW</span>
-              <span className="relative z-10 translate-x-0 group-hover:translate-x-1 transition-transform">→</span>
-              {/* Glitch shimmer on hover */}
-              <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-[length:200%_100%] animate-[glitch_0.3s_ease_infinite]" />
-            </Link>
-
-            {/* Secondary ghost */}
-            <span className="monospace text-muted text-[10px] flex flex-col">
-              <span className="text-primary font-bold">[ 08 PRODUCTS ]</span>
-              <span>NEURAL SERIES</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Right HUD ─────────────────────────────────────────────────── */}
-      <div
-        ref={rightHudRef}
-        className="lg:col-span-2 flex flex-col items-end gap-12 monospace text-muted text-right"
-      >
-        <div className="hud-border p-4 hud-bracket-tl hud-bracket-br">
-          <span className="text-primary font-bold block">NEURAL_SYNC</span>
-          <span className="text-[9px]">SIGNAL STRENGTH: 98%</span>
-        </div>
-        <div className="flex flex-col gap-1 text-[9px]">
-          <span>LOC: 34.0522° N</span>
-          <span>LNG: 118.2437° W</span>
-        </div>
-        {/* Animated dot indicator */}
-        <div className="flex flex-col items-end gap-2">
-          {[100, 87, 72].map((v, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-[8px]">{v}%</span>
-              <div className="w-16 h-[2px] bg-black/10 relative overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 bg-secondary"
-                  style={{ width: `${v}%` }}
-                />
-              </div>
+              <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+              <span className="font-bold tracking-widest text-brand">NEW COLLECTION</span>
+              <span className="text-ink-muted">/</span>
+              <span>V2.2025</span>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* ── Floating scanline accent line ─────────────────────────────── */}
-      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-secondary/30 to-transparent" />
-    </section>
+            {/* Staggered Dropping Headline */}
+            <div className="overflow-hidden">
+              <h1
+                ref={headingRef}
+                className="text-4xl sm:text-6xl lg:text-7xl xl:text-[84px] font-black italic tracking-tighter leading-[0.9] text-ink-primary"
+                aria-label="Future Is Wearable."
+              >
+                {HEADING_LINES.map((line, idx) => (
+                  <span key={line} className="block overflow-hidden">
+                    <span className="word-drop block">
+                      {idx === 0 ? (
+                        <>
+                          FUTURE <span className="text-brand italic">IS</span>
+                        </>
+                      ) : (
+                        line
+                      )}
+                    </span>
+                  </span>
+                ))}
+              </h1>
+            </div>
+
+            {/* Supporting Copy */}
+            <p
+              ref={descRef}
+              className="text-ink-secondary text-xs sm:text-sm lg:text-base leading-relaxed max-w-md"
+            >
+              Beyond ordinary fashion. Discover a new dimension of streetwear.
+            </p>
+
+            {/* Call to Action Buttons */}
+            <div ref={ctaRef} className="flex flex-wrap items-center gap-3 sm:gap-4 pt-1">
+              <Link
+                href="/collections"
+                id="hero-explore-cta"
+                className="group inline-flex items-center gap-3 bg-brand text-ink-primary px-7 py-3.5 font-black italic tracking-tight text-xs uppercase transition-colors duration-300 hover:bg-brand-hover hover:text-ink-primary"
+              >
+                <span>EXPLORE COLLECTION</span>
+                <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+              </Link>
+
+              <button
+                onClick={() => setIsFilmOpen(true)}
+                id="hero-discover-cta"
+                className="monospace text-[10px] text-ink-secondary hover:text-brand px-4 py-3.5 border border-line hover:border-brand transition-all flex items-center gap-2 group cursor-pointer"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-brand group-hover:scale-125 transition-transform" />
+                <span>DISCOVER THE EXPERIENCE</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Right Column: Dominant 3D Avatar Stage ─────────────────── */}
+          <div
+            ref={viewerRef}
+            className="lg:col-span-7 order-1 lg:order-2 relative h-[62vh] sm:h-[66vh] lg:h-auto min-h-[340px] lg:min-h-[480px]"
+          >
+            {/* 3D Viewer — fills the stage, full-body framing */}
+            <div className="absolute inset-0">
+              <FashionViewerClient heightClass="h-full" />
+            </div>
+
+            {/* Floating Product Information (live catalogue data) */}
+            <div className="absolute left-0 bottom-[4.75rem] sm:bottom-20 lg:bottom-6 z-20 w-[min(100%,280px)]">
+              {productSlot}
+            </div>
+
+            {/* Technical Micro-Label: Coordinates (Far Right) */}
+            <div className="hidden xl:flex absolute right-1 top-1/4 z-20 flex-col gap-1 monospace text-[8px] text-ink-muted text-right pointer-events-none">
+              <span className="text-ink-primary font-bold">35.6895° N</span>
+              <span>139.6917° E</span>
+              <div className="w-6 h-[1px] bg-brand my-1 ml-auto" />
+              <span className="text-brand font-bold">TOKYO, JAPAN</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── Functional High-Fashion Film Modal ──────────────────────── */}
+      <FilmModal
+        isOpen={isFilmOpen}
+        onClose={() => setIsFilmOpen(false)}
+        videoSrc="/videos/hero-film.mp4"
+      />
+    </>
   );
 }

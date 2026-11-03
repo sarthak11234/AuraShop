@@ -1,11 +1,14 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import type { Metadata } from 'next';
-import { getProductById, getAllProducts } from '@/lib/products';
+import { getAllProductSlugs, getProductBySlug } from '@/lib/products';
 import { PDPClient } from './PDPClient';
 
 // ── Static params for build-time generation ───────────────────────────
 export async function generateStaticParams() {
-  return getAllProducts().map((p) => ({ id: p.slug }));
+  const slugs = await getAllProductSlugs();
+  return slugs.map((slug) => ({ id: slug }));
 }
 
 // ── SEO metadata ──────────────────────────────────────────────────────
@@ -15,27 +18,62 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getProductBySlug(id);
   if (!product) return { title: 'Not Found | VEXO' };
   return {
     title: `${product.title} — ${product.subtitle} | VEXO`,
     description: product.description,
+    alternates: {
+      canonical: `/product/${product.slug}`,
+    },
     openGraph: {
       title: product.title,
       description: product.subtitle,
+      url: `/product/${product.slug}`,
+      images: product.images[0]?.startsWith('/') ? [product.images[0]] : undefined,
     },
   };
 }
 
+// ── Streaming boundary: static shell + skeleton, product data async ──
+function PDPSkeleton() {
+  return (
+    <div className="min-h-screen pt-20 max-w-[1800px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-12">
+      <div className="lg:col-span-7 border-r border-line p-6">
+        <div className="bg-surface animate-pulse w-full" style={{ minHeight: '60vh' }} />
+      </div>
+      <div className="lg:col-span-5 p-8 flex flex-col gap-6">
+        <div className="h-4 bg-surface animate-pulse w-1/3" />
+        <div className="h-12 bg-surface animate-pulse w-2/3" />
+        <div className="h-8 bg-surface animate-pulse w-1/4" />
+        <div className="h-32 bg-surface animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+async function ProductContent({ id }: { id: string }) {
+  await connection();
+  // Slug-based retrieval — 404s for unknown products (see notFound below).
+  const product = await getProductBySlug(id);
+  if (!product) notFound();
+
+  return <PDPClient key={product.id} product={product} />;
+}
+
 // ── Page (Server Component) ───────────────────────────────────────────
+// Unknown slugs are 404-gated in src/proxy.ts BEFORE this route renders
+// (a mid-stream notFound() cannot change the HTTP status — see streaming.md).
 export default async function ProductPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = getProductById(id);
-  if (!product) notFound();
 
-  return <PDPClient product={product} />;
+  return (
+    <Suspense fallback={<PDPSkeleton />}>
+      <ProductContent id={id} />
+    </Suspense>
+  );
 }

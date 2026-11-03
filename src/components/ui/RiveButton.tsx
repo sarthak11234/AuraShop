@@ -11,6 +11,7 @@ interface RiveButtonProps {
   /** State machine name inside the Rive file */
   stateMachineName?: string;
   onClick?: () => void;
+  disabled?: boolean;
   /** Visual variant */
   variant?: 'primary' | 'ghost' | 'icon';
   className?: string;
@@ -28,6 +29,7 @@ export function RiveButton({
   riveSrc,
   stateMachineName = 'ButtonSM',
   onClick,
+  disabled = false,
   variant = 'primary',
   className = '',
   id,
@@ -67,9 +69,9 @@ export function RiveButton({
   // ── Variant styles ────────────────────────────────────────────────────
   const variantClasses = {
     primary:
-      'relative inline-flex items-center gap-3 bg-primary text-background px-8 py-4 font-black italic tracking-tight text-sm uppercase overflow-hidden group',
+      'relative inline-flex items-center gap-3 bg-brand text-ink-primary px-8 py-4 font-black italic tracking-tight text-sm uppercase overflow-hidden group hover:bg-brand-hover',
     ghost:
-      'relative inline-flex items-center gap-2 border border-primary text-primary px-6 py-3 font-bold italic text-sm uppercase overflow-hidden group hover:bg-primary hover:text-background transition-colors',
+      'relative inline-flex items-center gap-2 border border-line text-ink-secondary px-6 py-3 font-bold italic text-sm uppercase overflow-hidden group hover:bg-surface hover:text-ink-primary transition-colors',
     icon:
       'relative inline-flex items-center justify-center w-11 h-11 rounded-full overflow-hidden group',
   };
@@ -79,11 +81,12 @@ export function RiveButton({
       ref={buttonRef}
       id={id}
       onClick={onClick}
+      disabled={disabled}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); setIsPressed(false); }}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
-      className={`${variantClasses[variant]} ${className} transition-all duration-200 cursor-pointer`}
+      className={`${variantClasses[variant]} ${className} transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50`}
       aria-label={label}
     >
       {/* Rive animation layer (absolute, pointer-events-none) */}
@@ -106,7 +109,7 @@ export function RiveButton({
       {/* Pulse ring on primary */}
       {variant === 'primary' && (
         <span
-          className={`absolute inset-0 ring-2 ring-secondary ring-offset-0 pointer-events-none z-0 
+          className={`absolute inset-0 ring-2 ring-brand ring-offset-0 pointer-events-none z-0 
             transition-opacity duration-150 ${isPressed ? 'opacity-100' : 'opacity-0'}`}
         />
       )}

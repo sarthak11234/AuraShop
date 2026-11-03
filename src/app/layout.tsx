@@ -1,24 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
+import { Inter } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./master.css";
 import { Providers } from "./providers";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { ViewTransitionProvider } from "@/components/providers/ViewTransitionProvider";
 import { CartSidebar } from "@/components/cart/CartSidebar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-display",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "VEXO | Futuristic E-Commerce",
   description: "Experience the future of shopping with VEXO.",
+  metadataBase: new URL(process.env.NEXTAUTH_URL ?? "https://vexo.store"),
 };
 
 export default function RootLayout({
@@ -29,14 +38,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetBrainsMono.variable} h-full antialiased`}
     >
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground relative antialiased">
+      <body className="min-h-full flex flex-col bg-canvas text-ink-primary relative antialiased">
         {/* Global Textures */}
         <div className="fixed inset-0 pointer-events-none z-[9999] opacity-[0.03] scanlines" />
         <div className="fixed inset-0 pointer-events-none z-[9998] opacity-[0.15] grain" />
@@ -48,6 +52,7 @@ export default function RootLayout({
             <main className="flex-1">
               {children}
             </main>
+            <Footer />
           </ViewTransitionProvider>
         </Providers>
       </body>

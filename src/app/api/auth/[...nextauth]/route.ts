@@ -2,5 +2,6 @@ import { handlers } from '@/auth';
 
 export const { GET, POST } = handlers;
 
-// Edge-compatible — no Node.js runtime needed for Auth.js handlers
-export const runtime = 'edge';
+// Prisma v7 connects through @prisma/adapter-pg (node-postgres), which needs
+// the Node.js runtime. The previous `runtime = 'edge'` export could never
+// work with the Prisma adapter — the auth route now runs on Node (default).

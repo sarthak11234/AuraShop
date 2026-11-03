@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// @ts-nocheck — db types generated lazily after `npx prisma generate`
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAdminClient, INDEX_NAME } from '@/lib/algolia';
@@ -8,12 +6,24 @@ import { getAdminClient, INDEX_NAME } from '@/lib/algolia';
 // Secured with CRON_SECRET header — call via Vercel Cron or curl
 export async function POST(request: Request) {
   const secret = request.headers.get('x-cron-secret');
-  if (secret !== process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const products = await db.product.findMany({ where: { inStock: true } });
+    const client = getAdminClient();
+    if (!client) {
+      // Configured-but-not-operational: never pretend a sync happened.
+      return NextResponse.json(
+        { error: 'Algolia is not configured (NEXT_PUBLIC_ALGOLIA_APP_ID / ALGOLIA_ADMIN_KEY missing)' },
+        { status: 503 }
+      );
+    }
+
+    const products = await db.product.findMany({
+      where: { inStock: true },
+      include: { variants: { orderBy: { createdAt: 'asc' } } },
+    });
 
     const records = products.map((p) => ({
       objectID: p.id,
@@ -24,9 +34,10 @@ export async function POST(request: Request) {
       category: p.category,
       categoryCode: p.categoryCode,
       isNew: p.isNew,
+      sizes: p.variants.map((v) => v.size),
+      inStock: p.inStock,
     }));
 
-    const client = getAdminClient();
     await client.saveObjects({ indexName: INDEX_NAME, objects: records });
 
     return NextResponse.json({ synced: records.length });

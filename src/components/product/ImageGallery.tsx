@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageGalleryProps {
   /** Array of colour strings or image URLs */
@@ -16,21 +17,70 @@ function isUrl(str: string): boolean {
 
 export function ImageGallery({ images, productTitle, productSlug }: ImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const reduceMotion = useReducedMotion();
 
   const active = images[activeIndex] ?? '#1a1a1a';
+  const lastIndex = images.length - 1;
+
+  function showPrevious() {
+    setActiveIndex((index) => Math.max(0, index - 1));
+  }
+
+  function showNext() {
+    setActiveIndex((index) => Math.min(lastIndex, index + 1));
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'ArrowLeft' && activeIndex > 0) {
+      event.preventDefault();
+      showPrevious();
+    } else if (event.key === 'ArrowRight' && activeIndex < lastIndex) {
+      event.preventDefault();
+      showNext();
+    }
+  }
+
+  function handleTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    const startX = touchStartX.current;
+    touchStartX.current = null;
+    const endX = event.changedTouches[0]?.clientX;
+    if (startX === null || endX === undefined) return;
+
+    const distance = endX - startX;
+    if (Math.abs(distance) < 40) return;
+    if (distance < 0) showNext();
+    else showPrevious();
+  }
 
   return (
-    <div className="flex flex-col gap-4 h-full" ref={containerRef}>
+    <div
+      className="flex flex-col gap-4 h-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      role="region"
+      aria-label={`${productTitle} product images`}
+      aria-roledescription="carousel"
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
       {/* ── Main image / colour swatch ─────────────────────────────────── */}
-      <div className="relative flex-1 overflow-hidden" style={{ minHeight: '60vh' }}>
+      <div
+        className="relative flex-1 overflow-hidden touch-pan-y"
+        style={{ minHeight: '60vh' }}
+        onTouchStart={(event) => {
+          touchStartX.current = event.touches[0]?.clientX ?? null;
+        }}
+        onTouchEnd={handleTouchEnd}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={activeIndex}
-            initial={{ opacity: 0, scale: 1.04 }}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${activeIndex + 1} of ${images.length}`}
+            initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.04 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+            exit={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="absolute inset-0"
             // View Transition API: morphing from product card
             style={{
@@ -41,7 +91,7 @@ export function ImageGallery({ images, productTitle, productSlug }: ImageGallery
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={active}
-                alt={productTitle}
+                alt={`${productTitle}, image ${activeIndex + 1} of ${images.length}`}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -52,19 +102,19 @@ export function ImageGallery({ images, productTitle, productSlug }: ImageGallery
               >
                 {/* Corner HUD brackets */}
                 <div className="absolute inset-8 pointer-events-none">
-                  <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-secondary/60" />
-                  <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-secondary/60" />
-                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-secondary/60" />
-                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-secondary/60" />
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t border-l border-brand/60" />
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t border-r border-brand/60" />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-brand/60" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-brand/60" />
                 </div>
 
                 {/* Centre product label */}
                 <div className="flex flex-col items-center gap-3 opacity-60">
-                  <div className="w-16 h-[1px] bg-white/40" />
-                  <span className="monospace text-white/80 text-[11px]">
+                  <div className="w-16 h-[1px] bg-line" />
+                  <span className="monospace text-ink-primary text-[11px]">
                     {productTitle}
                   </span>
-                  <div className="w-16 h-[1px] bg-white/40" />
+                  <div className="w-16 h-[1px] bg-line" />
                 </div>
 
                 {/* Scanline overlay */}
@@ -74,41 +124,64 @@ export function ImageGallery({ images, productTitle, productSlug }: ImageGallery
           </motion.div>
         </AnimatePresence>
 
+        <button
+          type="button"
+          onClick={showPrevious}
+          disabled={activeIndex === 0}
+          aria-label="Previous product image"
+          className="absolute left-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-line bg-canvas/80 text-ink-primary transition-colors hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-30 motion-reduce:transition-none"
+        >
+          <ChevronLeft size={20} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={showNext}
+          disabled={activeIndex >= lastIndex}
+          aria-label="Next product image"
+          className="absolute right-4 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center border border-line bg-canvas/80 text-ink-primary transition-colors hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-30 motion-reduce:transition-none"
+        >
+          <ChevronRight size={20} aria-hidden="true" />
+        </button>
+
         {/* Slide counter */}
-        <div className="absolute bottom-4 right-4 monospace text-[9px] text-white/60 pointer-events-none">
+        <div
+          aria-live="polite"
+          className="absolute bottom-4 right-4 monospace text-[9px] text-ink-secondary pointer-events-none"
+        >
           {String(activeIndex + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
         </div>
       </div>
 
       {/* ── Thumbnail strip ────────────────────────────────────────────── */}
-      <div className="flex gap-3">
+      {images.length > 1 && <div className="flex gap-3 overflow-x-auto pb-2">
         {images.map((img, i) => (
           <button
             key={i}
             id={`gallery-thumb-${i}`}
             onClick={() => setActiveIndex(i)}
-            className={`relative flex-1 aspect-square overflow-hidden transition-all duration-300
+            aria-current={i === activeIndex ? 'true' : undefined}
+            className={`relative min-w-20 flex-1 aspect-square overflow-hidden transition-all duration-300
               ${i === activeIndex
-                ? 'ring-2 ring-secondary ring-offset-1 ring-offset-background'
+                ? 'ring-2 ring-brand ring-offset-1 ring-offset-background'
                 : 'opacity-50 hover:opacity-80'
               }`}
             aria-label={`View image ${i + 1}`}
           >
             {isUrl(img) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={img} alt="" className="w-full h-full object-cover" />
+              <img src={img} alt={`${productTitle}, image ${i + 1}`} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full" style={{ backgroundColor: img }} />
             )}
             {i === activeIndex && (
               <motion.div
                 layoutId="thumb-indicator"
-                className="absolute inset-0 ring-inset ring-2 ring-secondary"
+                className="absolute inset-0 ring-inset ring-2 ring-brand"
               />
             )}
           </button>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }

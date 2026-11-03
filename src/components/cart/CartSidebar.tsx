@@ -1,107 +1,128 @@
 'use client';
 
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Trash2, Plus, Minus } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { X } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import {
+  CartEmptyState,
+  CartItemRow,
+  CartOrderSummary,
+  CheckoutUnavailable,
+} from '@/components/cart/CartContents';
+import { useOverlayBehavior } from '@/hooks/useOverlayBehavior';
 import { useCartStore } from '@/store/cartStore';
 
 export function CartSidebar() {
-  const { items, removeItem, addItem, clearCart, isCartOpen, setCartOpen } = useCartStore();
+  const items = useCartStore((state) => state.items);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const isCartOpen = useCartStore((state) => state.isCartOpen);
+  const setCartOpen = useCartStore((state) => state.setCartOpen);
+  const router = useRouter();
+  const reduceMotion = useReducedMotion();
+  const itemCount = items.reduce((count, item) => count + item.quantity, 0);
+  const { closeRef, dialogRef } = useOverlayBehavior(isCartOpen, () => setCartOpen(false));
 
-  const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const continueShopping = () => {
+    setCartOpen(false);
+    router.push('/collections');
+  };
 
   return (
     <AnimatePresence>
       {isCartOpen && (
-        <>
+        <motion.div
+          key="cart-overlay"
+          className="fixed inset-0 z-[60]"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.18 }}
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={reduceMotion ? { duration: 0 } : undefined}
             onClick={() => setCartOpen(false)}
-            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-canvas/80 backdrop-blur-sm"
+            aria-hidden="true"
           />
-          <motion.div
-            initial={{ x: '100%' }}
+          <motion.aside
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cart-title"
+            aria-describedby="cart-description"
+            tabIndex={-1}
+            initial={reduceMotion ? { x: 0 } : { x: '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 z-[70] h-full w-full max-w-md glassmorphism border-l border-glass-border p-8 flex flex-col"
+            exit={reduceMotion ? { x: 0 } : { x: '100%' }}
+            transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 28, stiffness: 240 }}
+            className="absolute inset-y-0 right-0 z-10 flex h-[100dvh] w-full max-w-lg flex-col border-l border-line bg-surface px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:pb-6"
           >
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <ShoppingBag className="text-primary" />
-                <h2 className="text-xl font-bold tracking-tight">Your Cart</h2>
+            <div className="flex items-center justify-between border-b border-line pb-5">
+              <div>
+                <h2 id="cart-title" className="font-display text-xl font-bold tracking-tight text-ink-primary">
+                  CART
+                </h2>
+                <p id="cart-description" className="mt-1 font-mono text-[10px] text-ink-secondary">
+                  {itemCount} {itemCount === 1 ? 'ITEM' : 'ITEMS'}
+                </p>
               </div>
-              <button 
+              <Button
+                ref={closeRef}
+                type="button"
+                variant="ghost"
+                size="icon-lg"
                 onClick={() => setCartOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                aria-label="Close cart"
+                className="h-11 w-11"
               >
-                <X size={20} />
-              </button>
+                <X size={18} aria-hidden="true" />
+              </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-              {items.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-4">
-                  <ShoppingBag size={48} strokeWidth={1} />
-                  <p>Your cart is empty.</p>
+            {items.length === 0 ? (
+              <CartEmptyState onContinueShopping={continueShopping} />
+            ) : (
+              <>
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-5">
+                  {items.map((item) => <CartItemRow key={item.key} item={item} />)}
                 </div>
-              ) : (
-                items.map((item) => (
-                  <div key={item.id} className="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                    <div className="h-20 w-20 bg-zinc-900 rounded-lg flex-shrink-0" />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium">{item.name}</h3>
-                        <button 
-                          onClick={() => removeItem(item.id)}
-                          className="text-zinc-500 hover:text-destructive transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                      <p className="text-primary font-bold mb-4">${item.price}</p>
-                      <div className="flex items-center gap-3">
-                        <button 
-                          className="p-1 hover:bg-white/10 rounded"
-                          onClick={() => addItem({ ...item, quantity: -1 })}
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="text-sm w-4 text-center">{item.quantity}</span>
-                        <button 
-                          className="p-1 hover:bg-white/10 rounded"
-                          onClick={() => addItem({ ...item, quantity: 1 })}
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {items.length > 0 && (
-              <div className="mt-8 pt-8 border-t border-glass-border space-y-4">
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span className="neon-text">${total.toFixed(2)}</span>
+                <div className="space-y-4 border-t border-line pt-4">
+                  <CartOrderSummary items={items} id="cart-drawer-order-summary" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={continueShopping}
+                    className="min-h-11 w-full font-mono text-[10px] uppercase tracking-widest"
+                  >
+                    Continue shopping
+                  </Button>
+                  <Link
+                    href="/cart"
+                    onClick={() => setCartOpen(false)}
+                    className="flex min-h-11 items-center justify-center font-mono text-[10px] uppercase tracking-widest text-ink-secondary transition-colors hover:text-ink-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+                  >
+                    View full cart
+                  </Link>
+                  <CheckoutUnavailable idPrefix="cart-drawer-checkout" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={clearCart}
+                    className="min-h-10 w-full font-mono text-[10px] uppercase tracking-widest text-ink-muted"
+                  >
+                    Clear cart
+                  </Button>
                 </div>
-                <button className="w-full py-4 bg-primary text-black font-bold rounded-xl hover:shadow-neon transition-all">
-                  Proceed to Checkout
-                </button>
-                <button 
-                  onClick={clearCart}
-                  className="w-full py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
-                  Clear Cart
-                </button>
-              </div>
+              </>
             )}
-          </motion.div>
-        </>
+          </motion.aside>
+        </motion.div>
       )}
     </AnimatePresence>
   );

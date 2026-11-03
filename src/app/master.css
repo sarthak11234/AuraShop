@@ -5,14 +5,28 @@
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Outfit", var(--font-sans);
-  --font-mono: "JetBrains Mono", var(--font-geist-mono);
+  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
   
   /* VEXO Light Fidelity Palette */
   --color-primary: #000000;
   --color-secondary: #EB3333; /* Vibrant Red */
   --color-accent: #D1D5D8;    /* Beige/Grey Display */
   --color-muted: #A0A4A7;
+
+  /* VEXO approved design tokens */
+  --color-canvas: #0B0B0D;
+  --color-canvas-secondary: #121215;
+  --color-surface: #18181C;
+  --color-surface-elevated: #202025;
+  --color-ink-primary: #F4F2F0;
+  --color-ink-secondary: #A6A3A3;
+  --color-ink-muted: #77747A;
+  --color-brand: #FF454F;
+  --color-brand-hover: #E8323D;
+  --color-cyan: #72DCE5;
+  --color-line: #29292E;
   
   --radius-none: 0;
   
@@ -91,7 +105,7 @@
 
   /* Grain Overlay */
   .grain {
-    background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+    background-image: url("/images/noise.svg");
     opacity: var(--grain-opacity);
     pointer-events: none;
     filter: contrast(150%) brightness(100%);
@@ -102,13 +116,311 @@
   body {
     @apply bg-background text-foreground font-sans overflow-x-hidden;
     background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0) 100%);
+    font-weight: 400;
   }
   
   h1, h2, h3 {
-    @apply font-bold uppercase tracking-tight;
+    @apply font-display font-bold uppercase tracking-tight;
   }
   
   .monospace {
     @apply font-mono text-[10px] uppercase tracking-widest;
+  }
+}
+
+.vexo-header-inner {
+  height: 86px;
+  column-gap: clamp(8px, 1.25vw, 18px);
+}
+
+.vexo-header-meta {
+  white-space: nowrap;
+}
+
+.vexo-header-logo {
+  z-index: 1;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.vexo-wordmark {
+  font-size: clamp(26px, 2.25vw, 34px);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  line-height: 0.95;
+  padding-left: 0.3em;
+}
+
+.vexo-wordmark-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  margin-left: 1px;
+  border-radius: 50%;
+  background: var(--color-brand);
+}
+
+.vexo-tagline {
+  margin-top: 5px;
+  font-size: 9px;
+  letter-spacing: 0.27em;
+  line-height: 1;
+}
+
+.vexo-primary-nav {
+  min-width: 0;
+  gap: clamp(8px, 0.8vw, 12px);
+  white-space: nowrap;
+}
+
+.vexo-primary-links {
+  flex-shrink: 0;
+  gap: clamp(7px, 0.75vw, 12px);
+}
+
+.vexo-primary-link {
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.vexo-nav-slash {
+  color: var(--color-ink-muted);
+}
+
+.vexo-nav-active-dot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--color-brand);
+}
+
+.vexo-header-actions {
+  flex: 0 0 auto;
+  gap: 4px;
+  margin-left: 8px;
+  padding-left: 8px;
+}
+
+.vexo-header-actions #header-search-trigger,
+.vexo-wishlist-control,
+.vexo-header-icon {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.vexo-sign-in {
+  display: inline-flex;
+  min-width: 88px;
+  height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.vexo-mobile-menu {
+  display: none;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  padding: 0;
+}
+
+@media (min-width: 1440px) {
+  .vexo-primary-link {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .vexo-primary-links {
+    gap: 12px;
+  }
+
+  .vexo-header-actions {
+    gap: 6px;
+    margin-left: 12px;
+    padding-left: 12px;
+  }
+
+  .vexo-header-actions #header-search-trigger,
+  .vexo-wishlist-control,
+  .vexo-header-icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .vexo-header-inner {
+    column-gap: 8px;
+  }
+
+  .vexo-primary-nav {
+    gap: 8px;
+  }
+
+  .vexo-primary-links {
+    gap: 6px;
+  }
+
+  .vexo-primary-link {
+    gap: 3px;
+    font-size: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  .vexo-header-actions {
+    gap: 1px;
+    margin-left: 6px;
+    padding-left: 6px;
+  }
+
+  .vexo-header-actions #header-search-trigger,
+  .vexo-wishlist-control,
+  .vexo-header-icon {
+    width: 24px;
+    height: 28px;
+    flex-basis: 24px;
+  }
+
+  .vexo-header-actions #header-search-trigger svg,
+  .vexo-wishlist-control svg,
+  .vexo-header-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .vexo-sign-in {
+    width: 24px;
+    min-width: 24px;
+    height: 28px;
+    gap: 0;
+    padding: 0;
+  }
+
+  .vexo-sign-in-label {
+    display: none;
+  }
+
+  .vexo-account-button {
+    width: 24px;
+    height: 28px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+
+  .vexo-account-button svg:last-child {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vexo-header-meta {
+    display: flex;
+  }
+
+  .vexo-primary-links {
+    display: flex;
+  }
+
+  .vexo-wishlist-control,
+  .vexo-sign-in,
+  .vexo-account-wrap {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 1023px) {
+  .vexo-header-inner {
+    column-gap: 0;
+    padding-inline: clamp(12px, 3vw, 24px);
+  }
+
+  .vexo-header-meta,
+  .vexo-primary-links,
+  .vexo-wishlist-control,
+  .vexo-sign-in,
+  .vexo-account-wrap {
+    display: none;
+  }
+
+  .vexo-primary-nav {
+    gap: 0;
+  }
+
+  .vexo-header-actions {
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .vexo-header-actions #header-search-trigger,
+  .vexo-header-icon,
+  .vexo-mobile-menu {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .vexo-mobile-menu {
+    display: inline-flex;
+  }
+
+  .vexo-header-actions #header-search-trigger svg,
+  .vexo-header-icon svg,
+  .vexo-mobile-menu svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 639px) {
+  .vexo-header-inner {
+    padding-inline: 12px;
+  }
+
+  .vexo-wordmark {
+    font-size: clamp(23px, 7vw, 27px);
+    letter-spacing: 0.27em;
+    padding-left: 0.27em;
+  }
+
+  .vexo-wordmark-dot {
+    width: 5px;
+    height: 5px;
+    flex-basis: 5px;
+  }
+
+  .vexo-tagline {
+    display: none;
+  }
+
+  .vexo-header-actions {
+    gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vexo-header *,
+  .vexo-header *::before,
+  .vexo-header *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
