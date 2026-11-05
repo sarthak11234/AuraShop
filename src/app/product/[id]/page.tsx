@@ -6,6 +6,13 @@ import { PDPClient } from './PDPClient';
 
 // ── Static params for build-time generation ───────────────────────────
 export async function generateStaticParams() {
+  // Without DATABASE_URL/DIRECT_URL, static route generation cannot access
+  // the database. Return an empty set so the page renders at request time
+  // instead of build time. When credentials are available, all product
+  // routes are statically generated as before.
+  if (!process.env.DATABASE_URL && !process.env.DIRECT_URL) {
+    return [];
+  }
   const slugs = await getAllProductSlugs();
   return slugs.map((slug) => ({ id: slug }));
 }

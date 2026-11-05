@@ -6,6 +6,13 @@ import { CatalogueContent, CatalogueSkeleton } from '@/components/collections/Ca
 import { getCategories } from '@/lib/products';
 
 export async function generateStaticParams() {
+  // Without DATABASE_URL/DIRECT_URL, static route generation cannot access
+  // the database. Return an empty set so the page renders at request time
+  // instead of build time. When credentials are available, all category
+  // routes are statically generated as before.
+  if (!process.env.DATABASE_URL && !process.env.DIRECT_URL) {
+    return [];
+  }
   const categories = await getCategories();
   return categories.map((category) => ({ category }));
 }
