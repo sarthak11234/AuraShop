@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { connection } from 'next/server';
 import type { Metadata } from 'next';
 import { getAllProductSlugs, getProductBySlug } from '@/lib/products';
 import { PDPClient } from './PDPClient';
@@ -52,8 +51,8 @@ function PDPSkeleton() {
   );
 }
 
-async function ProductContent({ id }: { id: string }) {
-  await connection();
+async function ProductContent({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   // Slug-based retrieval — 404s for unknown products (see notFound below).
   const product = await getProductBySlug(id);
   if (!product) notFound();
@@ -64,16 +63,14 @@ async function ProductContent({ id }: { id: string }) {
 // ── Page (Server Component) ───────────────────────────────────────────
 // Unknown slugs are 404-gated in src/proxy.ts BEFORE this route renders
 // (a mid-stream notFound() cannot change the HTTP status — see streaming.md).
-export default async function ProductPage({
+export default function ProductPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-
   return (
     <Suspense fallback={<PDPSkeleton />}>
-      <ProductContent id={id} />
+      <ProductContent params={params} />
     </Suspense>
   );
 }

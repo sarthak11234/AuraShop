@@ -32,14 +32,26 @@ async function main() {
   console.log('🌱 Seeding VEXO products (upsert, no deletes)…');
 
   for (const p of SEED_PRODUCTS) {
+    const categorySlug = p.categoryCode.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const category = await db.category.upsert({
+      where: { slug: categorySlug },
+      update: {},
+      create: {
+        name: p.category,
+        slug: categorySlug,
+        isPublished: true,
+      },
+    });
+
     const product = await db.product.upsert({
       where: { slug: p.slug },
       update: {
         title: p.title,
         subtitle: p.subtitle,
         price: p.priceRaw,
-        category: p.category,
-        categoryCode: p.categoryCode,
+        category: category.name,
+        categoryCode: category.slug.toUpperCase(),
+        categoryId: category.id,
         description: p.description,
         details: p.details,
         images: p.images,
@@ -52,8 +64,9 @@ async function main() {
         title: p.title,
         subtitle: p.subtitle,
         price: p.priceRaw,
-        category: p.category,
-        categoryCode: p.categoryCode,
+        category: category.name,
+        categoryCode: category.slug.toUpperCase(),
+        categoryId: category.id,
         description: p.description,
         details: p.details,
         images: p.images,

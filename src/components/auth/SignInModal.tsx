@@ -32,6 +32,32 @@ function GitHubIcon() {
   );
 }
 
+/** Provider availability status returned by the auth provider endpoint. */
+export type ProviderAvailability = {
+  google: boolean;
+  github: boolean;
+  resend: boolean;
+  hasAny: boolean;
+  missing: string[];
+};
+
+/** Evaluates which authentication providers are available and which are missing credentials. */
+export function evaluateProviderAvailability(
+  providers: string[] | null,
+): ProviderAvailability {
+  const google = providers?.includes('google') ?? false;
+  const github = providers?.includes('github') ?? false;
+  const resend = providers?.includes('resend') ?? false;
+  const hasAny = google || github || resend;
+
+  const missing: string[] = [];
+  if (!google) missing.push('AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET');
+  if (!github) missing.push('AUTH_GITHUB_ID / AUTH_GITHUB_SECRET');
+  if (!resend) missing.push('AUTH_RESEND_KEY');
+
+  return { google, github, resend, hasAny, missing };
+}
+
 export function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const [email, setEmail] = useState('');
   const [providers, setProviders] = useState<string[] | null>(null);
@@ -107,8 +133,8 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
     }
   }
 
-  const hasOAuthProvider = providers?.some((provider) => provider === 'google' || provider === 'github');
-  const hasEmailProvider = providers?.includes('resend') ?? false;
+  const availability = evaluateProviderAvailability(providers);
+  const { google, github, resend, hasAny, missing } = availability;
 
   return (
     <AnimatePresence>
@@ -151,7 +177,8 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
                   SIGN IN
                 </h2>
                 <p id="signin-description" className="mt-2 text-sm text-ink-secondary">
-                  Continue to your VEXO account.
+                  Continue to your VEXO account. New customer? Enter your email below
+                  to create an account and receive a sign-in link.
                 </p>
               </div>
               <Button
@@ -179,50 +206,51 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
               </p>
             ) : providers === null ? (
               <p role="status" className="font-mono text-xs text-ink-secondary">LOADING SIGN-IN OPTIONS…</p>
-            ) : providers.length === 0 ? (
-              <p role="status" className="text-sm text-ink-secondary">
-                Sign-in is temporarily unavailable.
-              </p>
-            ) : (
+            ) : hasAny ? (
               <>
-                {hasOAuthProvider && (
+                {google && (
                   <div className="space-y-3">
-                    {providers.includes('google') && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleOAuth('google')}
-                        disabled={loading !== null}
-                        className="min-h-12 w-full justify-start gap-3 px-4 font-mono text-[10px] uppercase tracking-widest"
-                      >
-                        <GoogleIcon />
-                        {loading === 'google' ? 'Connecting…' : 'Continue with Google'}
-                      </Button>
-                    )}
-                    {providers.includes('github') && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleOAuth('github')}
-                        disabled={loading !== null}
-                        className="min-h-12 w-full justify-start gap-3 px-4 font-mono text-[10px] uppercase tracking-widest"
-                      >
-                        <GitHubIcon />
-                        {loading === 'github' ? 'Connecting…' : 'Continue with GitHub'}
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleOAuth('google')}
+                      disabled={loading !== null}
+                      className="min-h-12 w-full justify-start gap-3 px-4 font-mono text-[10px] uppercase tracking-widest"
+                    >
+                      <GoogleIcon />
+                      {loading === 'google' ? 'Connecting…' : 'Continue with Google'}
+                    </Button>
                   </div>
                 )}
-
-                {hasOAuthProvider && hasEmailProvider && (
+                {github && (
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleOAuth('github')}
+                      disabled={loading !== null}
+                      className="min-h-12 w-full justify-start gap-3 px-4 font-mono text-[10px] uppercase tracking-widest"
+                    >
+                      <GitHubIcon />
+                      {loading === 'github' ? 'Connecting…' : 'Continue with GitHub'}
+                    </Button>
+                  </div>
+                )}
+                {(google || github) && resend && (
                   <div className="flex items-center gap-3">
                     <span className="h-px flex-1 bg-line" />
                     <span className="font-mono text-[9px] uppercase tracking-widest text-ink-muted">OR EMAIL</span>
                     <span className="h-px flex-1 bg-line" />
                   </div>
                 )}
-
-                {hasEmailProvider && (
+                {!((google || github) && resend) && resend && (
+                  <div className="flex items-center gap-3">
+                    <span className="h-px flex-1 bg-line" />
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-ink-muted">OR EMAIL</span>
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+                )}
+                {resend && (
                   magicSent ? (
                     <div className="space-y-3 border border-line bg-canvas-secondary p-4" role="status">
                       <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-brand">
@@ -262,12 +290,24 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
                     </form>
                   )
                 )}
-
-                {!hasOAuthProvider && !hasEmailProvider && (
-                  <p role="status" className="text-sm text-ink-secondary">
-                    Sign-in is temporarily unavailable.
-                  </p>
-                )}
+              </>
+            ) : (
+              <>
+                <p role="alert" className="border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-ink-primary">
+                  Authentication is not yet configured.
+                </p>
+                <p className="mt-3 text-sm text-ink-secondary">
+                  To enable customer sign-in, configure one or more of the following in
+                  <code className="font-mono text-xs">.env.local</code>:
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-ink-secondary list-disc pl-5">
+                  {missing.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-ink-muted">
+                  After adding credentials, restart the development server and refresh this page.
+                </p>
               </>
             )}
           </motion.div>

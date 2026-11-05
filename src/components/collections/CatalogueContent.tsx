@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { getCategories, getProducts } from '@/lib/products';
 
@@ -199,6 +200,7 @@ function Pagination({
 }
 
 export async function CatalogueContent({ basePath = '/collections', category, searchParams }: CatalogueProps) {
+  await connection();
   const content = await Catalogue({ basePath, category, searchParams });
   return <>{content}</>;
 }

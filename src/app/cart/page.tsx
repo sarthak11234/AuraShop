@@ -8,7 +8,7 @@ import {
   CartEmptyState,
   CartItemRow,
   CartOrderSummary,
-  CheckoutUnavailable,
+  CheckoutLink,
 } from '@/components/cart/CartContents';
 import { useCartStore } from '@/store/cartStore';
 
@@ -50,7 +50,7 @@ export default function CartPage() {
 
             <aside className="h-fit space-y-5 border border-line bg-surface p-5 sm:p-6">
               <CartOrderSummary items={items} id="cart-page-order-summary" />
-              <CheckoutUnavailable idPrefix="cart-page-checkout" />
+              <CheckoutLink />
               <Button
                 type="button"
                 variant="outline"

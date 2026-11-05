@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './src/app/__tests__',
@@ -8,14 +8,17 @@ export default defineConfig({
   },
   // Run tests in parallel
   fullyParallel: true,
-  // Use Chrome by default
-  reporter: [['list'], ['html']],
+  // Use list reporter
+  reporter: 'list',
+  use: {
+    baseURL: 'http://localhost:3000',
+  },
   // Configure web server
   webServer: {
     command: 'npm run start',
     url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 120000,
+    reuseExistingServer: false,
+    timeout: 60000,
   },
   // Look in the tests/ directory, relative to this config
   // projects: [

@@ -11,8 +11,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createClient(): PrismaClient {
+  const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
+  if (!connectionString) {
+    throw new Error('Database connection string is missing. Please set DATABASE_URL or DIRECT_URL.');
+  }
+
   const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
   });
 
   return new PrismaClient({

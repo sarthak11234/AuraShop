@@ -31,7 +31,12 @@ export async function POST(request: Request) {
     }
 
     const products = await db.product.findMany({
-      where: { inStock: true },
+      where: {
+        inStock: true,
+        isPublished: true,
+        archivedAt: null,
+        categoryRecord: { isPublished: true },
+      },
       include: { variants: { orderBy: { createdAt: 'asc' } } },
     });
 

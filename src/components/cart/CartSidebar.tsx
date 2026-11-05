@@ -10,7 +10,7 @@ import {
   CartEmptyState,
   CartItemRow,
   CartOrderSummary,
-  CheckoutUnavailable,
+  CheckoutLink,
 } from '@/components/cart/CartContents';
 import { useOverlayBehavior } from '@/hooks/useOverlayBehavior';
 import { useCartStore } from '@/store/cartStore';
@@ -109,7 +109,7 @@ export function CartSidebar() {
                   >
                     View full cart
                   </Link>
-                  <CheckoutUnavailable idPrefix="cart-drawer-checkout" />
+                  <CheckoutLink onClick={() => setCartOpen(false)} />
                   <Button
                     type="button"
                     variant="ghost"

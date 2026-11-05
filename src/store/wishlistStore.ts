@@ -4,9 +4,13 @@ import type { ProductCardData } from '@/lib/products';
 
 interface WishlistState {
   items: ProductCardData[];
+  /** Auth.js user id that owns the persisted wishlist, or null for a guest. */
+  ownerId: string | null;
   toggleItem: (product: ProductCardData) => void;
   removeItem: (productId: string) => void;
   clearWishlist: () => void;
+  setOwnerId: (ownerId: string | null) => void;
+  replaceItems: (items: ProductCardData[]) => void;
 }
 
 const wishlistStorage = createJSONStorage(() =>
@@ -23,6 +27,7 @@ export const useWishlistStore = create<WishlistState>()(
   persist(
     (set) => ({
       items: [],
+      ownerId: null,
       toggleItem: (product) =>
         set((state) => ({
           items: state.items.some((item) => item.id === product.id)
@@ -31,12 +36,14 @@ export const useWishlistStore = create<WishlistState>()(
         })),
       removeItem: (productId) =>
         set((state) => ({ items: state.items.filter((item) => item.id !== productId) })),
-      clearWishlist: () => set({ items: [] }),
+      clearWishlist: () => set({ items: [], ownerId: null }),
+      setOwnerId: (ownerId) => set({ ownerId }),
+      replaceItems: (items) => set({ items }),
     }),
     {
       name: 'vexo-wishlist',
       storage: wishlistStorage,
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, ownerId: state.ownerId }),
       skipHydration: true,
     },
   ),

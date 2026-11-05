@@ -1,6 +1,7 @@
 'use client';
 
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useCartStore, cartTotalCents, type CartItem } from '@/store/cartStore';
 
@@ -128,20 +129,14 @@ export function CartOrderSummary({ items, id }: { items: CartItem[]; id: string 
   );
 }
 
-export function CheckoutUnavailable({ idPrefix }: { idPrefix: string }) {
+export function CheckoutLink({ onClick }: { onClick?: () => void }) {
   return (
-    <div className="space-y-2">
-      <p id={`${idPrefix}-note`} className="text-xs leading-relaxed text-ink-muted">
-        Checkout is not available yet.
-      </p>
-      <Button
-        type="button"
-        disabled
-        aria-describedby={`${idPrefix}-note`}
-        className="min-h-12 w-full font-mono text-[10px] uppercase tracking-widest"
-      >
-        Proceed to checkout
-      </Button>
-    </div>
+    <Link
+      href="/checkout"
+      onClick={onClick}
+      className="flex min-h-12 w-full items-center justify-center rounded-md bg-brand font-mono text-[10px] uppercase tracking-widest text-primary-foreground transition-colors hover:bg-brand/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+    >
+      Proceed to checkout
+    </Link>
   );
 }

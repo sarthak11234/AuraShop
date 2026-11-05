@@ -1,3 +1,4 @@
+import { cacheLife, cacheTag } from 'next/cache';
 import { db } from '@/lib/db';
 
 // ─────────────────────────────────────────────────
@@ -123,10 +124,16 @@ export async function getProducts({
   sort?: 'featured' | 'newest' | 'price-asc' | 'price-desc';
   inStock?: boolean;
 } = {}): Promise<ProductPage> {
+  'use cache';
+  cacheLife('minutes');
+  cacheTag('products', 'catalogue');
   const safePage = Math.max(1, Math.trunc(page));
   const safePageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.trunc(pageSize)));
 
   const where = {
+    isPublished: true,
+    archivedAt: null,
+    categoryRecord: { isPublished: true },
     ...(category ? { category: { equals: category, mode: 'insensitive' as const } } : {}),
     ...(inStock ? { inStock: true } : {}),
     ...(q
@@ -189,8 +196,12 @@ export async function getProducts({
 
 /** Homepage showcase — newest products, hard-capped. */
 export async function getFeaturedProducts(limit = 8): Promise<ProductCardData[]> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products', 'featured-products');
   const take = Math.min(MAX_PAGE_SIZE, Math.max(1, Math.trunc(limit)));
   const items = await db.product.findMany({
+    where: { isPublished: true, archivedAt: null, categoryRecord: { isPublished: true } },
     orderBy: { createdAt: 'desc' },
     take,
     include: { variants: { select: { size: true, stock: true }, orderBy: { createdAt: 'asc' } } },
@@ -198,10 +209,59 @@ export async function getFeaturedProducts(limit = 8): Promise<ProductCardData[]>
   return items.map(toCardData);
 }
 
+/**
+ * Availability refresh for browser-persisted wishlists. Returns the current
+ * card data for every requested id (including unpublished/archived products
+ * with `inStock: false`) so stale saved snapshots can be corrected without
+ * silently dropping a customer's saved pieces.
+ */
+export async function getProductsByIds(ids: string[]): Promise<ProductCardData[]> {
+  const unique = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean))).slice(0, 100);
+  if (unique.length === 0) return [];
+
+  const items = await db.product.findMany({
+    where: { id: { in: unique } },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      subtitle: true,
+      price: true,
+      category: true,
+      categoryCode: true,
+      isNew: true,
+      images: true,
+      isPublished: true,
+      archivedAt: true,
+      variants: { select: { size: true, stock: true }, orderBy: { createdAt: 'asc' } },
+      categoryRecord: { select: { isPublished: true } },
+    },
+  });
+
+  return items.map((product) =>
+    toCardData({
+      ...product,
+      inStock:
+        product.isPublished &&
+        product.archivedAt === null &&
+        product.categoryRecord?.isPublished === true &&
+        product.variants.some((variant) => variant.stock > 0),
+    }),
+  );
+}
+
 /** Slug-based product retrieval with per-size variants (includes out-of-stock sizes). */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const p = await db.product.findUnique({
-    where: { slug },
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products', `product-${slug}`);
+  const p = await db.product.findFirst({
+    where: {
+      slug,
+      isPublished: true,
+      archivedAt: null,
+      categoryRecord: { isPublished: true },
+    },
     include: { variants: { orderBy: { createdAt: 'asc' } } },
   });
   if (!p) return null;
@@ -229,13 +289,24 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 /** All slugs — for generateStaticParams. */
 export async function getAllProductSlugs(): Promise<string[]> {
-  const items = await db.product.findMany({ select: { slug: true }, orderBy: { createdAt: 'desc' } });
+  'use cache';
+  cacheLife('hours');
+  cacheTag('products');
+  const items = await db.product.findMany({
+    where: { isPublished: true, archivedAt: null, categoryRecord: { isPublished: true } },
+    select: { slug: true },
+    orderBy: { createdAt: 'desc' },
+  });
   return items.map((p) => p.slug);
 }
 
 /** Distinct categories present in the catalogue (for filter chips). */
 export async function getCategories(): Promise<string[]> {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('categories');
   const rows = await db.product.findMany({
+    where: { isPublished: true, archivedAt: null, categoryRecord: { isPublished: true } },
     distinct: ['category'],
     select: { category: true },
     orderBy: { category: 'asc' },

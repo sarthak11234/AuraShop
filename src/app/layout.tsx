@@ -51,12 +51,16 @@ export default function RootLayout({
         
         <Providers>
           <ViewTransitionProvider>
-            <Header />
-            <CartSidebar />
+            <div data-storefront-chrome>
+              <Header />
+              <CartSidebar />
+            </div>
             <main className="flex-1">
               {children}
             </main>
-            <Footer />
+            <div data-storefront-chrome>
+              <Footer />
+            </div>
           </ViewTransitionProvider>
         </Providers>
       </body>

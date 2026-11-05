@@ -12,6 +12,7 @@ import { SearchTrigger } from '@/components/search/SearchBar';
 import { Button } from '@/components/ui/button';
 import { useOverlayBehavior } from '@/hooks/useOverlayBehavior';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { WishlistAccountSync } from '@/components/product/WishlistAccountSync';
 
 const NAV_ITEMS: Array<{
   label: string;
@@ -23,6 +24,15 @@ const NAV_ITEMS: Array<{
   { label: 'MATERIALS', href: '/#materials' },
   { label: 'TECH LAB', href: '/collections?category=TECH' },
 ];
+
+const ACCOUNT_LINKS = [
+  ['OVERVIEW', '/account'],
+  ['ORDERS', '/account/orders'],
+  ['ADDRESSES', '/account/addresses'],
+  ['WISHLIST', '/account/wishlist'],
+  ['PROFILE', '/account/profile'],
+  ['SETTINGS', '/account/settings'],
+] as const;
 
 type NavigationLinksProps = {
   variant: 'desktop' | 'mobile';
@@ -311,6 +321,19 @@ export const Header = () => {
                             <p className="mt-1 truncate font-mono text-[10px] text-ink-muted">{session.user.email}</p>
                           )}
                         </div>
+                        <div role="group" aria-label="Account pages" className="border-b border-line py-1">
+                          {ACCOUNT_LINKS.map(([label, href]) => (
+                            <Link
+                              key={href}
+                              href={href}
+                              role="menuitem"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="block px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-secondary transition-colors hover:bg-surface-elevated hover:text-ink-primary"
+                            >
+                              {label}
+                            </Link>
+                          ))}
+                        </div>
                         {signOutError && (
                           <p role="alert" className="px-4 py-3 text-xs text-ink-secondary">
                             Sign out failed. Please try again.
@@ -445,6 +468,18 @@ export const Header = () => {
                         <p className="mt-1 truncate font-mono text-[10px] text-ink-muted">{session.user.email}</p>
                       )}
                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {ACCOUNT_LINKS.map(([label, href]) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setIsMobileOpen(false)}
+                          className="flex min-h-10 items-center border border-line px-3 font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-ink-secondary transition-colors hover:border-brand hover:text-ink-primary"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                    </div>
                     {signOutError && (
                       <p role="alert" className="text-xs text-ink-secondary">Sign out failed. Please try again.</p>
                     )}
@@ -514,6 +549,9 @@ export const Header = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Keep the browser-persisted wishlist scoped to the signed-in account. */}
+      <WishlistAccountSync />
 
       {/* Sign-In Modal (rendered outside header for proper stacking) */}
       <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />

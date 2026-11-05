@@ -120,7 +120,12 @@ export async function proxy(request: NextRequest) {
     let canonicalCategory: string | null = null;
     try {
       const row = await getDb().product.findFirst({
-        where: { category: { equals: category, mode: 'insensitive' as const } },
+        where: {
+          category: { equals: category, mode: 'insensitive' as const },
+          isPublished: true,
+          archivedAt: null,
+          categoryRecord: { isPublished: true },
+        },
         select: { id: true, category: true },
       });
       exists = row !== null;
@@ -159,8 +164,13 @@ export async function proxy(request: NextRequest) {
 
   let exists = false;
   try {
-    const row = await getDb().product.findUnique({
-      where: { slug },
+    const row = await getDb().product.findFirst({
+      where: {
+        slug,
+        isPublished: true,
+        archivedAt: null,
+        categoryRecord: { isPublished: true },
+      },
       select: { id: true },
     });
     exists = row !== null;

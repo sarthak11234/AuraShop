@@ -178,6 +178,10 @@
   gap: clamp(7px, 0.75vw, 12px);
 }
 
+body:has(.admin-shell) [data-storefront-chrome] {
+  display: none;
+}
+
 .vexo-primary-link {
   gap: 4px;
   font-size: 9px;

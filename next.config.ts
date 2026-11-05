@@ -6,9 +6,10 @@ const nextConfig: NextConfig = {
   // Static shell streams instantly; uncached reads (DB) must sit inside
   // <Suspense> boundaries so they stream.
   cacheComponents: true,
+  partialPrefetching: true,
   // ─── Security headers ─────────────────────────────────────────────────────
   async headers() {
-    return [
+    const list = [
       {
         // Apply to all routes
         source: '/(.*)',
@@ -40,19 +41,21 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        // Stricter headers in production only (when NOT localhost)
-        source: '/(.*)',
-        headers: process.env.NODE_ENV === 'production' && process.env.VERCEL !== '1'
-          ? [
-              {
-                key: 'Strict-Transport-Security',
-                value: 'max-age=31536000; includeSubDomains',
-              },
-            ]
-          : [],
-      },
     ];
+
+    if (process.env.NODE_ENV === 'production' && process.env.VERCEL !== '1') {
+      list.push({
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
+        ],
+      });
+    }
+
+    return list;
   },
   // ──────────────────────────────────────────────────────────────────────────
   images: {
