@@ -25,7 +25,7 @@ interface CatalogueSearchParams {
 interface CatalogueProps {
   basePath?: string;
   category?: string;
-  searchParams: Promise<CatalogueSearchParams>;
+  searchParams?: Promise<CatalogueSearchParams> | CatalogueSearchParams;
 }
 
 function buildHref(
@@ -43,7 +43,13 @@ function buildHref(
 }
 
 async function Catalogue({ basePath = '/collections', category, searchParams }: CatalogueProps) {
-  const { page: pageParam, category: queryCategory, q, sort: sortParam, inStock: inStockParam } = await searchParams;
+  const resolvedSearchParams =
+    process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true'
+      ? {}
+      : searchParams
+        ? await searchParams
+        : {};
+  const { page: pageParam, category: queryCategory, q, sort: sortParam, inStock: inStockParam } = resolvedSearchParams;
   const selectedCategory = category ?? queryCategory;
   const page = Math.max(1, Number.parseInt(pageParam ?? '1', 10) || 1);
   const sort: CatalogueSort =
@@ -200,7 +206,7 @@ function Pagination({
 }
 
 export async function CatalogueContent({ basePath = '/collections', category, searchParams }: CatalogueProps) {
-  await connection();
+  if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') { await connection(); }
   const content = await Catalogue({ basePath, category, searchParams });
   return <>{content}</>;
 }

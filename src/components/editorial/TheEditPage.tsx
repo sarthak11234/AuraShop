@@ -460,7 +460,7 @@ function ProductDiscoverySkeleton() {
 }
 
 async function ProductDiscoverySection() {
-  await connection();
+  if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') { await connection(); }
   const products: ProductCardData[] = await getFeaturedProducts(8);
 
   return (

@@ -10,7 +10,7 @@ export async function generateStaticParams() {
   // the database. Return an empty set so the page renders at request time
   // instead of build time. When credentials are available, all category
   // routes are statically generated as before.
-  if (!process.env.DATABASE_URL && !process.env.DIRECT_URL) {
+  if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true' && !process.env.DATABASE_URL && !process.env.DIRECT_URL) {
     return [];
   }
   const categories = await getCategories();
@@ -19,7 +19,7 @@ export async function generateStaticParams() {
 
 interface CollectionPageProps {
   params: Promise<{ category: string }>;
-  searchParams: Promise<{
+  searchParams?: Promise<{
     page?: string;
     q?: string;
     sort?: string;
@@ -44,18 +44,18 @@ async function CollectionView({
   searchParams,
 }: {
   category: string;
-  searchParams: Promise<{
+  searchParams?: Promise<{
     page?: string;
     q?: string;
     sort?: string;
     inStock?: string;
   }>;
 }) {
-  await connection();
+  if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true') { await connection(); }
   const categories = await getCategories();
   const valid = categories.some((c) => c.toUpperCase() === category.toUpperCase());
   if (!valid) notFound();
-  return <CatalogueContent basePath="/collections" category={category} searchParams={searchParams} />;
+  return <CatalogueContent basePath="/collections" category={category} searchParams={process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? undefined : searchParams} />;
 }
 
 // ── Collection landing page ────────────────────────────────────────────

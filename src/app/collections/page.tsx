@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function CollectionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{
+  searchParams?: Promise<{
     page?: string;
     category?: string;
     q?: string;
@@ -24,7 +24,7 @@ export default function CollectionsPage({
   return (
     <div className="min-h-screen px-6 pb-24 pt-24">
       <Suspense fallback={<CatalogueSkeleton />}>
-        <CatalogueContent basePath="/collections" searchParams={searchParams} />
+        <CatalogueContent basePath="/collections" searchParams={process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ? undefined : searchParams} />
       </Suspense>
     </div>
   );

@@ -10,7 +10,7 @@ export async function generateStaticParams() {
   // the database. Return an empty set so the page renders at request time
   // instead of build time. When credentials are available, all product
   // routes are statically generated as before.
-  if (!process.env.DATABASE_URL && !process.env.DIRECT_URL) {
+  if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== 'true' && !process.env.DATABASE_URL && !process.env.DIRECT_URL) {
     return [];
   }
   const slugs = await getAllProductSlugs();

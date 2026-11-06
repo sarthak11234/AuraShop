@@ -1,11 +1,24 @@
 import { cacheLife, cacheTag } from 'next/cache';
 import { db } from '@/lib/db';
+import {
+  getStaticAllProductSlugs,
+  getStaticCategories,
+  getStaticFeaturedProducts,
+  getStaticProductBySlug,
+  getStaticProducts,
+} from '@/lib/static-products';
 
 // ─────────────────────────────────────────────────
 // Product data-access layer
 // All catalogue reads go through this module. Server Components and API
 // routes must never query `db` directly or import static product data.
+// In static export mode (or when no DB credentials exist), canonical
+// seed data is used cleanly without database connections.
 // ─────────────────────────────────────────────────
+
+const isStaticExport =
+  process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' ||
+  (!process.env.DATABASE_URL && !process.env.DIRECT_URL);
 
 /** Per-size variant — availability is tracked per size, not per product. */
 export interface ProductVariantData {
@@ -124,6 +137,27 @@ export async function getProducts({
   sort?: 'featured' | 'newest' | 'price-asc' | 'price-desc';
   inStock?: boolean;
 } = {}): Promise<ProductPage> {
+  if (isStaticExport) {
+    return getStaticProducts({ page, pageSize, category, q, sort, inStock });
+  }
+  return getDbProducts({ page, pageSize, category, q, sort, inStock });
+}
+
+async function getDbProducts({
+  page = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+  category,
+  q,
+  sort = 'featured',
+  inStock,
+}: {
+  page?: number;
+  pageSize?: number;
+  category?: string;
+  q?: string;
+  sort?: 'featured' | 'newest' | 'price-asc' | 'price-desc';
+  inStock?: boolean;
+} = {}): Promise<ProductPage> {
   'use cache';
   cacheLife('minutes');
   cacheTag('products', 'catalogue');
@@ -196,6 +230,13 @@ export async function getProducts({
 
 /** Homepage showcase — newest products, hard-capped. */
 export async function getFeaturedProducts(limit = 8): Promise<ProductCardData[]> {
+  if (isStaticExport) {
+    return getStaticFeaturedProducts(limit);
+  }
+  return getDbFeaturedProducts(limit);
+}
+
+async function getDbFeaturedProducts(limit = 8): Promise<ProductCardData[]> {
   'use cache';
   cacheLife('hours');
   cacheTag('products', 'featured-products');
@@ -252,6 +293,13 @@ export async function getProductsByIds(ids: string[]): Promise<ProductCardData[]
 
 /** Slug-based product retrieval with per-size variants (includes out-of-stock sizes). */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
+  if (isStaticExport) {
+    return getStaticProductBySlug(slug);
+  }
+  return getDbProductBySlug(slug);
+}
+
+async function getDbProductBySlug(slug: string): Promise<Product | null> {
   'use cache';
   cacheLife('hours');
   cacheTag('products', `product-${slug}`);
@@ -289,6 +337,13 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 /** All slugs — for generateStaticParams. */
 export async function getAllProductSlugs(): Promise<string[]> {
+  if (isStaticExport) {
+    return getStaticAllProductSlugs();
+  }
+  return getDbAllProductSlugs();
+}
+
+async function getDbAllProductSlugs(): Promise<string[]> {
   'use cache';
   cacheLife('hours');
   cacheTag('products');
@@ -302,6 +357,13 @@ export async function getAllProductSlugs(): Promise<string[]> {
 
 /** Distinct categories present in the catalogue (for filter chips). */
 export async function getCategories(): Promise<string[]> {
+  if (isStaticExport) {
+    return getStaticCategories();
+  }
+  return getDbCategories();
+}
+
+async function getDbCategories(): Promise<string[]> {
   'use cache';
   cacheLife('hours');
   cacheTag('categories');

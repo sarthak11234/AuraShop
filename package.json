@@ -10,7 +10,8 @@
     "test": "tsx --test src/lib/*.test.ts",
     "admin:promote": "tsx prisma/promote-admin.ts",
     "postinstall": "prisma generate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build:export": "node scripts/build-static-export.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
